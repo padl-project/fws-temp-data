@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(googledrive)
 library(here)
 library(tidyverse)
+library(readxl)
 
 
 ## Sets R not to use scientific notations
@@ -35,27 +36,69 @@ Make sure the file path on the code is updated to the correct folder.
 # url of folder where the data lives
 # Copy paste the url of the folder where the data lives
 
-folder_url <- " "
+folder_url <- "https://drive.google.com/drive/folders/1MxBrDKefrRByxFhRKbvbzHnSDshcgW1e"
 
-# list of files inside the folder
+# list of files inside the folder: Allie Hunter_FWS
 files <- drive_ls(as_id(folder_url))
 
+```
 
-## Download all file to local computer. 
+In this case there are too many sub-folders and we do not need all the files in the folders. Therefore I'll just go checking one by one and downloading the most raw version of the data.
 
-# purrr::walk2(
-#     map(files$id, as_id),
-#     paste0("raw_data/", files$name),
-#     drive_download,
-#     overwrite = TRUE)
+```{r}
+## SeaTempLogger2017
 
-## Download one specific file to local computer
-
-# **UPDATE NUMBER IN BRACKETS**
-
-drive_download(as_id(files$id[1]),
-               path = paste0("6.raw_data/", files$name[1]),
+dir_17 = drive_ls(files[2, ])
+  
+## Download xlsx "Temperature Loggers Retrieved Aug 2017.xlsx" file to see what it has
+drive_download(as_id(dir_17$id[17]),
+               path = paste0("6.raw_data/", dir_17$name[17]),
                overwrite = T)
 
+excel_sheets(paste0("6.raw_data/", dir_17$name[17]))
+
+## Read excel file to see whet is has
+meta_17 <- read_excel(paste0("6.raw_data/", dir_17$name[17]), sheet = "2017")
+meta_18 <- read_excel(paste0("6.raw_data/", dir_17$name[17]), sheet = "2018")
+## IT IS METADATA
+
+## Sub-files
+subdir1 <- drive_ls(dir_17[1,])
+
+## Download xlxs file in this forlder and check
+drive_download(as_id(subdir1$id[1]),
+               path = paste0("6.raw_data/", subdir1$name[1]),
+               overwrite = T)
+
+excel_sheets(paste0("6.raw_data/", subdir1$name[1]))
+
+## Read excel to see data
+xls_16 <- read_excel(paste0("6.raw_data/", subdir1$name[1]), sheet = "July2016_Dec2016")
+
+
+## Download csv file to compare data
+drive_download(as_id(subdir1$id[2]),
+               path = paste0("6.raw_data/", subdir1$name[2]),
+               overwrite = T)
+
+csv_8_17 <- read_csv(paste0("6.raw_data/", subdir1$name[2]), skip = 11)
+
+## Excel file seems to be a copy of the raw data in csv. 
+## Next steps: Build a data frame with all the files in the folders inside dir_17
+##Once we have the data frame, filter all the csv files
+##download all csv files - add an identifier string in the file name to know the file comes form the 2017 folder
+
+
+## Loop to name objects as they are being read. Missing th epart of binings all together into one dataframe
+
+# for (i in seq_along(dir_17) all_csv$n){
+#   
+#   assign(all_csv$obj_name[i], read_csv_clean(all_csv$path[i]))
+# }
+
+
 ```
+
+
+
 
