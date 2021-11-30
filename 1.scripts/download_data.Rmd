@@ -13,6 +13,7 @@ library(googledrive)
 library(here)
 library(tidyverse)
 library(readxl)
+library(janitor)
 
 
 ## Sets R not to use scientific notations
@@ -36,9 +37,10 @@ Make sure the file path on the code is updated to the correct folder.
 # url of folder where the data lives
 # Copy paste the url of the folder where the data lives
 
+## Allie Hunter_FWS
 folder_url <- "https://drive.google.com/drive/folders/1MxBrDKefrRByxFhRKbvbzHnSDshcgW1e"
 
-# list of files inside the folder: Allie Hunter_FWS
+# list of files/folders inside the folder: Allie Hunter_FWS
 files <- drive_ls(as_id(folder_url))
 
 ```
@@ -46,9 +48,9 @@ files <- drive_ls(as_id(folder_url))
 In this case there are too many sub-folders and we do not need all the files in the folders. Therefore I'll just go checking one by one and downloading the most raw version of the data.
 
 ```{r}
-## SeaTempLogger2017
+## files and folders inside SeaTempLogger2017
 
-dir_17 = drive_ls(files[2, ])
+dir_17 = drive_ls(files[1, ])  
   
 ## Download xlsx "Temperature Loggers Retrieved Aug 2017.xlsx" file to see what it has
 drive_download(as_id(dir_17$id[17]),
@@ -57,12 +59,12 @@ drive_download(as_id(dir_17$id[17]),
 
 excel_sheets(paste0("6.raw_data/", dir_17$name[17]))
 
-## Read excel file to see whet is has
+## Read excel file to see whet is has: These sheets are metadata!
 meta_17 <- read_excel(paste0("6.raw_data/", dir_17$name[17]), sheet = "2017")
 meta_18 <- read_excel(paste0("6.raw_data/", dir_17$name[17]), sheet = "2018")
-## IT IS METADATA
 
-## Sub-files
+
+## Sub-files inside SBE56-04744 Sacia Holei
 subdir1 <- drive_ls(dir_17[1,])
 
 ## Download xlxs file in this forlder and check
@@ -70,35 +72,103 @@ drive_download(as_id(subdir1$id[1]),
                path = paste0("6.raw_data/", subdir1$name[1]),
                overwrite = T)
 
-excel_sheets(paste0("6.raw_data/", subdir1$name[1]))
-
-## Read excel to see data
-xls_16 <- read_excel(paste0("6.raw_data/", subdir1$name[1]), sheet = "July2016_Dec2016")
-
-
 ## Download csv file to compare data
 drive_download(as_id(subdir1$id[2]),
                path = paste0("6.raw_data/", subdir1$name[2]),
                overwrite = T)
 
+```
+
+Checking if Excel fiel asn csv has the same information
+
+```{r}
+excel_sheets(paste0("6.raw_data/", subdir1$name[1]))
+
+## Read excel to see data
+xls_16 <- read_excel(paste0("6.raw_data/", subdir1$name[1]), sheet = "July2016_Dec2016")
+
+xls_17 <- read_excel(paste0("6.raw_data/", subdir1$name[1]), sheet = "Jan2017_Aug2017")
+
+xls_all <- bind_rows(xls_16, xls_17) %>% 
+  select(1:4) %>%
+  clean_names() %>% 
+  mutate(date = as.Date(date, format = "YYYY-MM-DD"))
+
 csv_8_17 <- read_csv(paste0("6.raw_data/", subdir1$name[2]), skip = 11)
 
-## Excel file seems to be a copy of the raw data in csv. 
-## Next steps: Build a data frame with all the files in the folders inside dir_17
-##Once we have the data frame, filter all the csv files
-##download all csv files - add an identifier string in the file name to know the file comes form the 2017 folder
+setdiff(xls_all$sample_number, csv_8_17$`Sample Number`)
+  
+```
 
 
-## Loop to name objects as they are being read. Missing th epart of binings all together into one dataframe
+Excel and csv have the same information!
 
-# for (i in seq_along(dir_17) all_csv$n){
-#   
-#   assign(all_csv$obj_name[i], read_csv_clean(all_csv$path[i]))
-# }
+## Next steps for downloading all csv files
+1. Build a data frame with all the files in the folders inside dir_17
 
+```{r}
+## Loop to name objects as they are being read. Missing the part of binding all together into one dataframe
+
+for (i in seq(1:14)){
+
+  assign(paste0("subdir", i), drive_ls(dir_17[i,])) %>% 
+    mutate(origin_dir = i)
+}
+
+subdir_vec <- paste0("subdir", seq(1:14))
+
+all_subdir <- bind_rows(subdir1, subdir2, subdir3, subdir4, subdir5, subdir6, subdir7, subdir8, subdir9, subdir10, subdir11, subdir12, subdir13, subdir14, .id = "source")
 
 ```
 
 
+2.filter all the csv files and add site name
+
+```{r}
+csv_list <- all_subdir %>% 
+  filter(str_detect(name, ".csv")) %>% 
+  mutate(source = as.numeric(source))
+
+site_names <- dir_17 %>% 
+  select(name) %>% 
+  separate(col = name,
+           into = c("id1", "id2", "id3", "id4"),
+           sep = " ",
+           remove = FALSE) %>% 
+  unite(site_name, id2, id3, id4, sep = " ", na.rm = T) %>% 
+  mutate(source = 1:n()) %>% 
+  filter(source %in% c(1:14)) %>% 
+  select(source, folder_name = name, site_name)
+
+
+csv_w_names <- csv_list %>% 
+  left_join(site_names, by = "source")
+
+```
+
+3. download all csv files - add an identifier string in the file name to know the file comes form the 2017 folder
+
+
+```{r}
+
+## Download all file to local computer. 
+## This code did not work. Error in curl::curl_fetch_disk(url, x$path, handle = handle) : Failed to open file raw_data/Sacia Holei_SBE05604744_2017-08-30.csv.
+
+# purrr::walk2(
+#     map(csv_w_names$id, as_id),
+#     paste0("raw_data/",csv_w_names$site_name, "_", csv_w_names$name),
+#     drive_download,
+#     overwrite = TRUE)
+
+
+for (i in seq(1:18)){
+
+  drive_download(as_id(csv_list$id[i]),
+               path = paste0("6.raw_data/", csv_w_names$site_name[i], "_", csv_w_names$name[i]),
+               overwrite = T)
+  
+}
+
+```
 
 

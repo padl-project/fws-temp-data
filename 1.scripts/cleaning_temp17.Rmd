@@ -1,0 +1,129 @@
+---
+title: "Cleaning Temp Data"
+author: "Camila Vargas"
+date: "11/30/2021"
+output: html_document
+---
+
+This scripts cleans csv files provided by Allie Hunter from Fish and Wildlife Service with Temperature data for Palmyra Atoll, data from SeaTempLoggers 2017.
+
+Date range goes from"2014-07-18" to "2017-09-01"
+
+The goal is to determine gaps un data collections and missing information needed to correctly document this data.
+
+## Set up
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+## Load packages
+library(here)
+library(tidyverse)
+library(janitor)
+
+## Sets R not to use scientific notations
+options(scipen=999) 
+
+raw_data_path <- here::here("6.raw_data/")
+```
+
+
+## Read data
+1. Create a tibble with all the csv that we need to read. Make sure to have a column with site name so we can keep track of this information.
+
+```{r}
+all_csv <- tibble(list.files(raw_data_path, pattern = ".csv")) %>% 
+  rename(file_name = 1) %>%
+  separate(col = file_name,
+           into = c("site_name", "id2", "id3"),
+           sep = "_",
+           remove = FALSE) %>%
+  filter(site_name != "SBE05604744") %>%  ## remove repeated file
+  mutate(path = paste0(raw_data_path, "/", file_name),
+         n = 1:n(),
+         type = "temp") %>% 
+  unite(obj_name, type, n, sep = "_", remove = FALSE) %>% 
+  select(-id2, -id3)
+```
+
+2. Read each file
+
+```{r}
+## general funtion
+read_csv_clean <- function(dataset){
+  
+  read_csv(dataset, skip = 11) %>% 
+    clean_names()
+}
+
+
+for (i in all_csv$n){
+  
+  assign(all_csv$obj_name[i], read_csv_clean(all_csv$path[i]))
+}
+
+```
+
+3. Check data
+
+Both files from Eastern Flats (temp_3 and temp_4) are exactly the same.
+
+temp_10 and temp_14 are the continuation of temp_9 and temp_13 respectively. This means we do not have to skip 11 rows, instead we need to read all and add colnames.
+
+```{r}
+all_equal(temp_3, temp_4) #True
+setdiff(temp_3$temperature, temp_4$temperature)
+setdiff(temp_3$date, temp_4$date)
+setdiff(temp_4$date,temp_3$date)
+
+colnames(temp_10)
+colnames(temp_14)
+
+```
+
+4. Read temp_10 and temp_14 without skipping rows
+
+
+```{r}
+temp_10 <- read_csv(all_csv$path[10], col_names = F)
+
+names(temp_10) <- c("sample_number","date","time","temperature")
+
+temp_14 <- read_csv(all_csv$path[14], col_names = F)
+
+names(temp_14) <- c("sample_number","date","time","temperature")
+
+```
+
+
+
+4. Combine all data and add site
+```{r}
+
+temp_list <- list(temp_1, temp_2, temp_3,temp_5, temp_6, temp_7, temp_8, temp_9, temp_10, temp_11, temp_12, temp_13, temp_14, temp_15, temp_16, temp_17, temp_18)
+
+names(temp_list) <- c("temp_1", "temp_2", "temp_3", "temp_5", "temp_6", "temp_7", "temp_8", "temp_9", "temp_10", "temp_11", "temp_12", "temp_13", "temp_14", "temp_15", "temp_16", "temp_17", "temp_18")
+
+
+all_temp <- bind_rows(temp_list, .id = "obj_name")
+
+
+row_check <- all_temp %>% 
+  group_by(obj_name) %>% 
+  tally()
+
+
+all_temp <- all_temp %>% 
+  left_join(all_csv, by = "obj_name") %>% 
+  select(-file_name, -path, -obj_name, -n, -type) %>% 
+  mutate(year_folder = 2017)
+
+
+```
+
+Site names matches with names on Temperature Loggers Retrieved Aug 2017.xls
+
+Need to check if all other information matches and determine gaps!
+Plot data to see how it looks.
+
+
