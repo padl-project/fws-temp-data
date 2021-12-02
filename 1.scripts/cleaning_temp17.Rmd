@@ -28,7 +28,7 @@ raw_data_path <- here::here("6.raw_data/")
 ```
 
 
-## Read data
+## Process data
 1. Create a tibble with all the csv that we need to read. Make sure to have a column with site name so we can keep track of this information.
 
 ```{r}
@@ -41,15 +41,21 @@ all_csv <- tibble(list.files(raw_data_path, pattern = ".csv")) %>%
   filter(site_name != "SBE05604744") %>%  ## remove repeated file
   mutate(path = paste0(raw_data_path, "/", file_name),
          n = 1:n(),
-         type = "temp") %>% 
+         type = "temp",
+         meta = "meta") %>% 
   unite(obj_name, type, n, sep = "_", remove = FALSE) %>% 
-  select(-id2, -id3)
+  unite(meta_name, meta, n, sep = "", remove = FALSE) %>% 
+  separate(col = id2,
+           into = c("serial_num", "other"),
+           sep = c("-"," "),
+           remove = FALSE) %>% 
+  select(-id2, -id3, - other)
 ```
 
 2. Read each file
 
 ```{r}
-## general funtion
+## general function
 read_csv_clean <- function(dataset){
   
   read_csv(dataset, skip = 11) %>% 
@@ -68,30 +74,45 @@ for (i in all_csv$n){
 
 Both files from Eastern Flats (temp_3 and temp_4) are exactly the same.
 
-temp_10 and temp_14 are the continuation of temp_9 and temp_13 respectively. This means we do not have to skip 11 rows, instead we need to read all and add colnames.
-
 ```{r}
 all_equal(temp_3, temp_4) #True
 setdiff(temp_3$temperature, temp_4$temperature)
 setdiff(temp_3$date, temp_4$date)
 setdiff(temp_4$date,temp_3$date)
 
+```
+
+temp_10 and temp_14 are the continuation of temp_9 and temp_13 respectively. This means we do not have to skip 11 rows, instead we need to read all and add colnames.
+How ever temp_11 and temp_15 contains the complete dataaset for these site.
+```{r}
 colnames(temp_10)
 colnames(temp_14)
 
 ```
 
-4. Read temp_10 and temp_14 without skipping rows
 
-
+temp_13 and temp_14 combine contain the same data than temp_15
 ```{r}
-temp_10 <- read_csv(all_csv$path[10], col_names = F)
+sb_1 <- bind_rows(temp_13, temp_14)
+all_equal(temp_15, sb_1)
+setdiff(temp_15$temperature, sb_1$temperature)
+setdiff(sb_1$temperature,temp_15$temperature)
+setdiff(sb_1$date,temp_15$date)
+setdiff(temp_15$date,sb_1$date)
 
-names(temp_10) <- c("sample_number","date","time","temperature")
+```
 
-temp_14 <- read_csv(all_csv$path[14], col_names = F)
 
-names(temp_14) <- c("sample_number","date","time","temperature")
+temp_9 and temp_10 combine contain the same data than temp_11
+```{r}
+rt_1 <- bind_rows(temp_9, temp_10)
+
+all_equal(temp_11, rt_1)
+all_equal(rt_1,temp_11)
+setdiff(temp_11$temperature, rt_1$temperature)
+setdiff(rt_1$temperature,temp_11$temperature)
+setdiff(rt_1$date, temp_11$date)
+setdiff(temp_11$date,rt_1$date)
 
 ```
 
@@ -100,21 +121,26 @@ names(temp_14) <- c("sample_number","date","time","temperature")
 4. Combine all data and add site
 ```{r}
 
-temp_list <- list(temp_1, temp_2, temp_3,temp_5, temp_6, temp_7, temp_8, temp_9, temp_10, temp_11, temp_12, temp_13, temp_14, temp_15, temp_16, temp_17, temp_18)
+temp_list <- list(temp_1, temp_2, temp_3, temp_5, temp_6, temp_7, temp_8, temp_11, temp_12, temp_15, temp_16, temp_17, temp_18)
 
-names(temp_list) <- c("temp_1", "temp_2", "temp_3", "temp_5", "temp_6", "temp_7", "temp_8", "temp_9", "temp_10", "temp_11", "temp_12", "temp_13", "temp_14", "temp_15", "temp_16", "temp_17", "temp_18")
-
-
-all_temp <- bind_rows(temp_list, .id = "obj_name")
+names(temp_list) <- c("temp_1", "temp_2", "temp_3", "temp_5", "temp_6", "temp_7", "temp_8", "temp_11", "temp_12", "temp_15", "temp_16", "temp_17", "temp_18")
 
 
-row_check <- all_temp %>% 
+all_temp <- bind_rows(temp_list, .id = "obj_name") %>% 
+  left_join(all_csv, by = "obj_name")
+  #distinct()
+
+## Only 13 because of repeated files
+all_temp %>% 
   group_by(obj_name) %>% 
   tally()
 
+site_serial <- all_temp %>% 
+  select(obj_name, serial_num, site_name) %>% 
+  distinct()
 
-all_temp <- all_temp %>% 
-  left_join(all_csv, by = "obj_name") %>% 
+
+final_temp <- all_temp %>% 
   select(-file_name, -path, -obj_name, -n, -type) %>% 
   mutate(year_folder = 2017)
 
@@ -123,7 +149,78 @@ all_temp <- all_temp %>%
 
 Site names matches with names on Temperature Loggers Retrieved Aug 2017.xls
 
-Need to check if all other information matches and determine gaps!
-Plot data to see how it looks.
+
+
+# Checking info
+All date match. 
+```{r}
+
+## Create a table with date range
+data_range <- final_temp %>% 
+  group_by(site_name) %>% 
+  summarise(date_begins = min(date),
+         date_ends = max(date))
+
+
+```
+
+2016-2017 data is complete!
+
+## Save data
+
+```{r}
+
+write_csv(final_temp, here::here("8.intermediate_files/2016_2017_sea_temp.csv"))
+
+```
+
+
+## Collect metadata
+
+Read first 11 lines of csv. Lines that contain metadata
+```{r}
+
+read_meta <- function(dataset){
+  
+  read_csv(dataset, n_max = 11, col_names = F)
+}
+
+
+for (i in all_csv$n){
+  
+  assign(all_csv$meta_name[i], read_meta(all_csv$path[i]))
+}
+
+```
+
+Combine all and format
+```{r}
+meta_list <- list(meta1, meta2, meta3, meta5, meta6, meta7, meta8, meta11, meta12, meta15, meta16, meta17, meta18)
+
+names(meta_list) <- c("meta1", "meta2", "meta3", "meta5", "meta6", "meta7", "meta8", "meta11", "meta12", "meta15", "meta16", "meta17", "meta18")
+
+
+all_meta <- bind_rows(meta_list, .id = "meta_name") %>% 
+  left_join(all_csv, by = "meta_name") %>% 
+  select(meta_name, X1, site_name, serial_num)
+
+metadata <- all_meta %>% 
+  mutate(X1 = str_remove(X1, "\\%") %>% trimws(.),
+         info = str_extract(X1, "(?<=\\=).+") %>% trimws(.),
+         parameter = str_remove(X1, "(?<=\\=).+"),
+         parameter = str_remove(parameter, "\\=") %>% trimws(.)) %>% 
+  filter(X1 != "Coefficients:") %>% 
+  select(site_name, parameter, info) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = info) %>% 
+  clean_names()
+
+```
+
+## Save metadata
+```{r}
+write_csv(metadata, here::here("8.intermediate_files/2016_2017_metadata.csv"))
+```
+
 
 
