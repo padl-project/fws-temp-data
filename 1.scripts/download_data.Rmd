@@ -51,7 +51,9 @@ In this case there are too many sub-folders and we do not need all the files in 
 ## files and folders inside SeaTempLogger2017
 
 dir_17 = drive_ls(files[1, ])  
-  
+ 
+## TESTING
+ 
 ## Download xlsx "Temperature Loggers Retrieved Aug 2017.xlsx" file to see what it has
 drive_download(as_id(dir_17$id[17]),
                path = paste0("6.raw_data/", dir_17$name[17]),
@@ -101,7 +103,7 @@ setdiff(xls_all$sample_number, csv_8_17$`Sample Number`)
 ```
 
 
-Excel and csv have the same information!
+
 
 ## Next steps for downloading all csv files
 1. Build a data frame with all the files in the folders inside dir_17
@@ -170,5 +172,83 @@ for (i in seq(1:18)){
 }
 
 ```
+
+-----------------------------------------------------------------------------------------------
+### Download files for Subfolder 2018
+
+```{r}
+## files and folders inside SeaTempLogger2018
+
+dir_18 = drive_ls(files[5, ]) ## **check file to make sure 5 correspond to the 2018 folder**
+  
+```
+
+1. Build a data frame with all the files in the folders inside dir_18
+
+```{r}
+## Loop to name objects as they are being read. Missing the part of binding all together into one dataframe
+
+for (i in seq(1:11)){
+
+  assign(paste0("subdir", i), drive_ls(dir_18[1,])) %>% 
+    mutate(origin_dir = i)
+}
+
+subdir_vec <- paste0("subdir", seq(1:11))
+
+all_subdir <- bind_rows(subdir1, subdir2, subdir3, subdir4, subdir5, subdir6, subdir7, subdir8, subdir9, subdir10, subdir11, subdir12, subdir13, subdir14, .id = "source")
+
+```
+
+
+2.filter all the csv files and add site name
+
+```{r}
+csv_list <- all_subdir %>% 
+  filter(str_detect(name, ".csv")) %>% 
+  mutate(source = as.numeric(source))
+
+site_names <- dir_17 %>% 
+  select(name) %>% 
+  separate(col = name,
+           into = c("id1", "id2", "id3", "id4"),
+           sep = " ",
+           remove = FALSE) %>% 
+  unite(site_name, id2, id3, id4, sep = " ", na.rm = T) %>% 
+  mutate(source = 1:n()) %>% 
+  filter(source %in% c(1:14)) %>% 
+  select(source, folder_name = name, site_name)
+
+
+csv_w_names <- csv_list %>% 
+  left_join(site_names, by = "source")
+
+```
+
+3. download all csv files - add an identifier string in the file name to know the file comes form the 2017 folder
+
+
+```{r}
+
+## Download all file to local computer. 
+## This code did not work. Error in curl::curl_fetch_disk(url, x$path, handle = handle) : Failed to open file raw_data/Sacia Holei_SBE05604744_2017-08-30.csv.
+
+# purrr::walk2(
+#     map(csv_w_names$id, as_id),
+#     paste0("raw_data/",csv_w_names$site_name, "_", csv_w_names$name),
+#     drive_download,
+#     overwrite = TRUE)
+
+
+for (i in seq(1:18)){
+
+  drive_download(as_id(csv_list$id[i]),
+               path = paste0("6.raw_data/", csv_w_names$site_name[i], "_", csv_w_names$name[i]),
+               overwrite = T)
+  
+}
+
+```
+
 
 
