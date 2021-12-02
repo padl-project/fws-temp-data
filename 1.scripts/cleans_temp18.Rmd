@@ -1,0 +1,109 @@
+---
+title: "Cleaning SeaTemp 2018"
+author: "Camila Vargas"
+date: "12/2/2021"
+output: html_document
+---
+
+This scripts cleans csv files provided by Allie Hunter from Fish and Wildlife Service with Temperature data for Palmyra Atoll, data from SeaTempLoggers 201.
+
+Date range goes from:
+
+The goal is to determine gaps un data collections and missing information needed to correctly document this data.
+
+## Set up
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+## Load packages
+library(here)
+library(tidyverse)
+library(janitor)
+
+## Sets R not to use scientific notations
+options(scipen=999) 
+
+raw_data_path <- here::here("6.raw_data/")
+```
+
+
+## Process data
+1. Create a tibble with all the csv that we need to read. Make sure to have a column with site name so we can keep track of this information.
+
+```{r}
+all_csv <- tibble(list.files(raw_data_path, pattern = ".csv")) %>% 
+  rename(file_name = 1) %>%
+  mutate(site_name = str_remove(file_name, "(?<=\\_).+"),
+         site_name = str_remove(site_name, "\\_") %>% trimws(.),
+         path = paste0(raw_data_path, "/", file_name),
+         n = 1:n(),
+         type = "temp",
+         meta = "meta") %>% 
+  unite(obj_name, type, n, sep = "", remove = FALSE) %>% 
+  unite(meta_name, meta, n, sep = "", remove = FALSE)
+  # separate(col = id2,
+  #          into = c("serial_num", "other"),
+  #          sep = c("-"," "),
+  #          remove = FALSE) %>% 
+  # select(-id2, -id3, - other)
+```
+
+2. Read each file
+
+```{r}
+## general function
+read_csv_clean <- function(dataset){
+  
+  read_csv(dataset, skip = 11) %>% 
+    clean_names()
+}
+
+
+for (i in all_csv$n){
+  
+  assign(all_csv$obj_name[i], read_csv_clean(all_csv$path[i]))
+}
+
+```
+
+Seems in this case we do not have repeated data. 
+
+3.Combine all data and add site
+
+Check for duplicates using `distinc()`
+
+```{r}
+
+temp_list <- list(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+
+names(temp_list) <- c("temp1", "temp2", "temp3", "temp4", "temp5", "temp6", "temp7", "temp8", "temp9", "temp10")
+
+## Check for duplicates
+all_temp <- bind_rows(temp_list) %>% 
+  distinct()
+
+##It looks like there are some suplicates! need to check in depth
+
+all_temp <- bind_rows(temp_list, .id = "obj_name") %>% 
+  left_join(all_csv, by = "obj_name")
+  #distinct()
+
+## Only 13 because of repeated files
+all_temp %>% 
+  group_by(obj_name) %>% 
+  tally()
+
+site_serial <- all_temp %>% 
+  select(obj_name, serial_num, site_name) %>% 
+  distinct()
+
+
+final_temp <- all_temp %>% 
+  select(-file_name, -path, -obj_name, -n, -type) %>% 
+  mutate(year_folder = 2017)
+
+
+```
+
+

@@ -50,16 +50,16 @@ In this case there are too many sub-folders and we do not need all the files in 
 ```{r}
 ## files and folders inside SeaTempLogger2017
 
-dir_17 = drive_ls(files[1, ])  
+dir_17 <-  drive_ls(files[4, ])  ## modify number according to list in object files
  
 ## TESTING
  
 ## Download xlsx "Temperature Loggers Retrieved Aug 2017.xlsx" file to see what it has
-drive_download(as_id(dir_17$id[17]),
-               path = paste0("6.raw_data/", dir_17$name[17]),
+drive_download(as_id(dir_17$id[1]),
+               path = paste0("6.raw_data/", dir_17$name[1]),
                overwrite = T)
 
-excel_sheets(paste0("6.raw_data/", dir_17$name[17]))
+excel_sheets(paste0("6.raw_data/", dir_17$name[1]))
 
 ## Read excel file to see whet is has: These sheets are metadata!
 meta_17 <- read_excel(paste0("6.raw_data/", dir_17$name[17]), sheet = "2017")
@@ -67,7 +67,7 @@ meta_18 <- read_excel(paste0("6.raw_data/", dir_17$name[17]), sheet = "2018")
 
 
 ## Sub-files inside SBE56-04744 Sacia Holei
-subdir1 <- drive_ls(dir_17[1,])
+subdir1 <- drive_ls(dir_17[3,])
 
 ## Download xlxs file in this forlder and check
 drive_download(as_id(subdir1$id[1]),
@@ -81,7 +81,7 @@ drive_download(as_id(subdir1$id[2]),
 
 ```
 
-Checking if Excel fiel asn csv has the same information
+Checking if Excel file asn csv has the same information
 
 ```{r}
 excel_sheets(paste0("6.raw_data/", subdir1$name[1]))
@@ -103,21 +103,21 @@ setdiff(xls_all$sample_number, csv_8_17$`Sample Number`)
 ```
 
 
-
-
 ## Next steps for downloading all csv files
 1. Build a data frame with all the files in the folders inside dir_17
 
 ```{r}
-## Loop to name objects as they are being read. Missing the part of binding all together into one dataframe
+## Loop to name objects as they are being read. This loop creates an object for each sub-directory in dir17, listing each of the files in each folder.
+## NOTE: Everytime a re run this scrito the order of the files changes. drive_ls() only works when looking into a folder, not a file. So, modify brakets numberes as needed!
 
-for (i in seq(1:14)){
+for (i in 2:14){
 
   assign(paste0("subdir", i), drive_ls(dir_17[i,])) %>% 
     mutate(origin_dir = i)
 }
 
-subdir_vec <- paste0("subdir", seq(1:14))
+
+## building one data frame with all files inside all forlders in dir_17
 
 all_subdir <- bind_rows(subdir1, subdir2, subdir3, subdir4, subdir5, subdir6, subdir7, subdir8, subdir9, subdir10, subdir11, subdir12, subdir13, subdir14, .id = "source")
 
@@ -179,7 +179,7 @@ for (i in seq(1:18)){
 ```{r}
 ## files and folders inside SeaTempLogger2018
 
-dir_18 = drive_ls(files[5, ]) ## **check file to make sure 5 correspond to the 2018 folder**
+dir_18 <-  drive_ls(files[1, ]) ## **check file to make sure 5 correspond to the 2018 folder**
   
 ```
 
@@ -188,15 +188,21 @@ dir_18 = drive_ls(files[5, ]) ## **check file to make sure 5 correspond to the 2
 ```{r}
 ## Loop to name objects as they are being read. Missing the part of binding all together into one dataframe
 
-for (i in seq(1:11)){
+for (i in 2:10){
 
-  assign(paste0("subdir", i), drive_ls(dir_18[1,])) %>% 
+  assign(paste0("subdir", i), drive_ls(dir_18[i,])) %>% 
     mutate(origin_dir = i)
 }
 
-subdir_vec <- paste0("subdir", seq(1:11))
 
-all_subdir <- bind_rows(subdir1, subdir2, subdir3, subdir4, subdir5, subdir6, subdir7, subdir8, subdir9, subdir10, subdir11, subdir12, subdir13, subdir14, .id = "source")
+## Create a list with all subdir files
+subdir_list <- list(subdir2, subdir3, subdir4, subdir5, subdir6, subdir7, subdir8, subdir9, subdir10, dir_18)
+
+## Re name lists inside list with corresponding object name
+names(subdir_list) <- c("subdir2", "subdir3", "subdir4", "subdir5", "subdir6", "subdir7", "subdir8", "subdir9", "subdir10", "dir_18")
+
+## Bind all data frames into one
+all_subdir <- bind_rows(subdir_list, .id = "source")
 
 ```
 
@@ -205,18 +211,18 @@ all_subdir <- bind_rows(subdir1, subdir2, subdir3, subdir4, subdir5, subdir6, su
 
 ```{r}
 csv_list <- all_subdir %>% 
-  filter(str_detect(name, ".csv")) %>% 
-  mutate(source = as.numeric(source))
+  filter(str_detect(name, ".csv"))
 
-site_names <- dir_17 %>% 
+site_names <- dir_18 %>% 
   select(name) %>% 
-  separate(col = name,
-           into = c("id1", "id2", "id3", "id4"),
-           sep = " ",
-           remove = FALSE) %>% 
-  unite(site_name, id2, id3, id4, sep = " ", na.rm = T) %>% 
-  mutate(source = 1:n()) %>% 
-  filter(source %in% c(1:14)) %>% 
+  mutate(site_name = str_replace(name, "_", " "),
+         site_name = str_remove_all(site_name, "\\d+"),
+         site_name = str_remove_all(site_name, "\\-"),
+         site_name = str_remove_all(site_name, "\\_"),
+         site_name = str_remove_all(site_name, ".csv") %>% trimws(.),
+         source = paste0("subdir", 1:11),
+         source = ifelse(source == "subdir1", "dir_18", source)) %>% 
+  filter(source != "subdir11") %>% 
   select(source, folder_name = name, site_name)
 
 
@@ -225,7 +231,7 @@ csv_w_names <- csv_list %>%
 
 ```
 
-3. download all csv files - add an identifier string in the file name to know the file comes form the 2017 folder
+3. download all csv files - add an identifier string in the file name to know the file comes form the 2018 folder
 
 
 ```{r}
@@ -240,7 +246,7 @@ csv_w_names <- csv_list %>%
 #     overwrite = TRUE)
 
 
-for (i in seq(1:18)){
+for (i in seq(1:10)){
 
   drive_download(as_id(csv_list$id[i]),
                path = paste0("6.raw_data/", csv_w_names$site_name[i], "_", csv_w_names$name[i]),
