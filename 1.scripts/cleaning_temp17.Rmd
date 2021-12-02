@@ -166,6 +166,27 @@ data_range <- final_temp %>%
 
 2016-2017 data is complete!
 
+
+Plot
+```{r}
+
+final_temp <- read_csv(here::here("8.intermediate_files/2016_2017_sea_temp.csv"))
+
+plot17 <- final_temp %>% 
+  group_by(date, site_name) %>% 
+  summarise(mean_temp = mean(temperature)) %>%
+  ungroup() %>% 
+  ggplot(
+  aes(x = date,
+      y = mean_temp,
+      color = site_name))+
+  geom_line()+
+  theme_classic()
+  
+ggplotly(plot17)
+
+```
+
 ## Save data
 
 ```{r}

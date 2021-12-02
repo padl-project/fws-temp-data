@@ -79,31 +79,142 @@ temp_list <- list(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9,
 
 names(temp_list) <- c("temp1", "temp2", "temp3", "temp4", "temp5", "temp6", "temp7", "temp8", "temp9", "temp10")
 
-## Check for duplicates
+## Check for duplicates - There are 16 rows with same date, time and temperature. Each come from different data sets, temp8 (Sacia) and temp10 (WTerrace). Is this possible??
 all_temp <- bind_rows(temp_list) %>% 
   distinct()
 
-##It looks like there are some suplicates! need to check in depth
+test <- bind_rows(temp_list)
+
+dupli <- test %>% 
+  group_by_all() %>% 
+  filter(n()>1) %>% 
+  ungroup()
+
+test2 <- all_temp %>% 
+  filter(date == "01/10/2018")
+
+## End checking -----------
 
 all_temp <- bind_rows(temp_list, .id = "obj_name") %>% 
-  left_join(all_csv, by = "obj_name")
-  #distinct()
+  distinct()
+  
 
-## Only 13 because of repeated files
+## make sure data of all files in all_tep
 all_temp %>% 
   group_by(obj_name) %>% 
   tally()
 
-site_serial <- all_temp %>% 
-  select(obj_name, serial_num, site_name) %>% 
-  distinct()
+site_serial <- all_csv %>% 
+  separate(col = file_name,
+           into = c("id1", "id2", "id3"),
+           sep = "_",
+           remove = FALSE) %>% 
+  mutate(serial_num = str_extract(id2, "\\d{4}[^\\d]*$"),
+         serial_num = ifelse(is.na(serial_num), str_extract(id3, "\\d{4}[^\\d]*$"),
+                                   serial_num),
+         serial_num = str_remove(serial_num, ".csv") %>% trimws(.)) %>%  
+  select(obj_name, serial_num, site_name)
 
 
 final_temp <- all_temp %>% 
-  select(-file_name, -path, -obj_name, -n, -type) %>% 
-  mutate(year_folder = 2017)
+  left_join(site_serial, by = "obj_name") %>% 
+  select(-obj_name) %>% 
+  mutate(year_folder = 2018,
+         date = as.Date(date, format = "%m/%d/%Y"))
 
 
+```
+
+
+## Checking
+
+Plot
+```{r}
+
+plot18 <- final_temp %>% 
+  group_by(date, site_name) %>% 
+  summarise(mean_temp = mean(temperature)) %>%
+  ungroup() %>% 
+  ggplot(
+  aes(x = date,
+      y = mean_temp,
+      color = site_name))+
+  geom_line()+
+  theme_classic()
+  
+ggplotly(plot18)
+
+```
+
+
+Date ranges
+```{r}
+
+## Create a table with date range
+date_range <- final_temp %>% 
+  group_by(site_name) %>% 
+  summarise(date_begins = min(date),
+         date_ends = max(date))
+
+
+```
+
+
+## Save data
+
+```{r}
+
+write_csv(final_temp, here::here("8.intermediate_files/2017_2018_sea_temp.csv"))
+
+```
+
+
+## Collect metadata
+
+Read first 11 lines of csv. Lines that contain metadata
+```{r}
+
+read_meta <- function(dataset){
+  
+  read_csv(dataset, n_max = 11, col_names = F)
+}
+
+
+for (i in all_csv$n){
+  
+  assign(all_csv$meta_name[i], read_meta(all_csv$path[i]))
+}
+
+```
+
+Combine all and format
+```{r}
+meta_list <- list(meta1, meta2, meta3, meta4, meta5, meta6, meta7, meta8, meta9, meta10)
+
+names(meta_list) <- c("meta1", "meta2", "meta3", "meta4", "meta5", "meta6", "meta7", "meta8", "meta9", "meta10")
+
+
+
+all_meta <- bind_rows(meta_list, .id = "meta_name") %>% 
+  left_join(all_csv, by = "meta_name") %>% 
+  select(meta_name, X1, site_name)
+
+metadata <- all_meta %>% 
+  mutate(X1 = str_remove(X1, "\\%") %>% trimws(.),
+         info = str_extract(X1, "(?<=\\=).+") %>% trimws(.),
+         parameter = str_remove(X1, "(?<=\\=).+"),
+         parameter = str_remove(parameter, "\\=") %>% trimws(.)) %>% 
+  filter(X1 != "Coefficients:") %>% 
+  select(site_name, parameter, info) %>% 
+  pivot_wider(names_from = parameter,
+              values_from = info) %>% 
+  clean_names()
+
+```
+
+## Save metadata
+```{r}
+write_csv(metadata, here::here("8.intermediate_files/2017_2018_metadata.csv"))
 ```
 
 
