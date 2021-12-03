@@ -1,13 +1,12 @@
 ---
-title: "Cleaning SeaTemp 2020"
+title: "Cleaning SeaTemp 2021"
 author: "Camila Vargas"
 date: "12/3/2021"
 output: html_document
 ---
+This scripts cleans csv files provided by Allie Hunter from Fish and Wildlife Service with Temperature data for Palmyra Atoll, data from SeaTempLoggers 2021.
 
-This scripts cleans csv files provided by Allie Hunter from Fish and Wildlife Service with Temperature data for Palmyra Atoll, data from SeaTempLoggers 2020.
-
-Date range goes from: 2018-09-21 to 2020-07-12
+Date range goes from: 2020-06-18 to 2021-10-19
 
 The goal is to determine gaps un data collections and missing information needed to correctly document this data.
 
@@ -76,9 +75,9 @@ Check for duplicates using `distinc()`
 
 ```{r}
 
-temp_list <- list(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8)
+temp_list <- list(temp1, temp2, temp3, temp4, temp5)
 
-names(temp_list) <- c("temp1", "temp2", "temp3", "temp4", "temp5", "temp6", "temp7", "temp8")
+names(temp_list) <- c("temp1", "temp2", "temp3", "temp4", "temp5")
 
 ## Check for duplicates - There are 16 rows with same date, time and temperature. Each come from different data sets, temp8 (Sacia) and temp10 (WTerrace). Is this possible??
 all_temp <- bind_rows(temp_list) %>% 
@@ -91,10 +90,7 @@ dupli <- test %>%
   filter(n()>1) %>% 
   ungroup()
 
-test2 <- all_temp %>% 
-  filter(date == "07/10/2019")
-
-## Temp6 and temp8 seem to have 131 repeated measurments
+## No duplicates!
 
 ## End checking -----------
 
@@ -123,12 +119,11 @@ site_serial <- all_csv %>%
 final_temp <- all_temp %>% 
   left_join(site_serial, by = "obj_name") %>% 
   select(-obj_name) %>% 
-  mutate(year_folder = 2020,
+  mutate(year_folder = 2021,
          date = as.Date(date, format = "%m/%d/%Y"))
 
 
 ```
-
 
 
 ## Checking
@@ -136,9 +131,9 @@ final_temp <- all_temp %>%
 Plot
 ```{r}
 
-final_temp <- read_csv(here::here("8.intermediate_files/2018_2020_sea_temp.csv"))
+#final_temp <- read_csv(here::here("8.intermediate_files/2020_2021_sea_temp.csv"))
 
-plot20 <- final_temp %>% 
+plot21 <- final_temp %>% 
   group_by(date, site_name) %>% 
   summarise(mean_temp = mean(temperature)) %>%
   ungroup() %>% 
@@ -149,7 +144,7 @@ plot20 <- final_temp %>%
   geom_line()+
   theme_classic()
   
-ggplotly(plot20)
+ggplotly(plot21)
 
 ```
 
@@ -173,7 +168,7 @@ date_range <- final_temp %>%
 ```{r}
 range(final_temp$date)
 
-write_csv(final_temp, here::here("8.intermediate_files/2018_2020_sea_temp.csv"))
+write_csv(final_temp, here::here("8.intermediate_files/2020_2021_sea_temp.csv"))
 
 ```
 
@@ -198,9 +193,9 @@ for (i in all_csv$n){
 
 Combine all and format
 ```{r}
-meta_list <- list(meta1, meta2, meta3, meta4, meta5, meta6, meta7, meta8)
+meta_list <- list(meta1, meta2, meta3, meta4, meta5)
 
-names(meta_list) <- c("meta1", "meta2", "meta3", "meta4", "meta5", "meta6", "meta7", "meta8")
+names(meta_list) <- c("meta1", "meta2", "meta3", "meta4", "meta5")
 
 
 
@@ -223,7 +218,10 @@ metadata <- all_meta %>%
 
 ## Save metadata
 ```{r}
-write_csv(metadata, here::here("8.intermediate_files/2017_2018_metadata.csv"))
+write_csv(metadata, here::here("8.intermediate_files/2020_2021_metadata.csv"))
 ```
+
+
+
 
 
