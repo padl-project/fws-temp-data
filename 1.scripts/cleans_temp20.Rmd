@@ -169,8 +169,9 @@ date_range <- final_temp %>%
 ## Save data
 
 ```{r}
+range(final_temp$date)
 
-write_csv(final_temp, here::here("8.intermediate_files/2017_2018_sea_temp.csv"))
+write_csv(final_temp, here::here("8.intermediate_files/2018_2020_sea_temp.csv"))
 
 ```
 
@@ -195,9 +196,9 @@ for (i in all_csv$n){
 
 Combine all and format
 ```{r}
-meta_list <- list(meta1, meta2, meta3, meta4, meta5, meta6, meta7, meta8, meta9, meta10)
+meta_list <- list(meta1, meta2, meta3, meta4, meta5, meta6, meta7, meta8)
 
-names(meta_list) <- c("meta1", "meta2", "meta3", "meta4", "meta5", "meta6", "meta7", "meta8", "meta9", "meta10")
+names(meta_list) <- c("meta1", "meta2", "meta3", "meta4", "meta5", "meta6", "meta7", "meta8")
 
 
 
