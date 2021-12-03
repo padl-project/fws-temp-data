@@ -1,13 +1,13 @@
 ---
-title: "Cleaning SeaTemp 2018"
+title: "Cleaning SeaTemp 2020"
 author: "Camila Vargas"
-date: "12/2/2021"
+date: "12/3/2021"
 output: html_document
 ---
 
-This scripts cleans csv files provided by Allie Hunter from Fish and Wildlife Service with Temperature data for Palmyra Atoll, data from SeaTempLoggers 2018.
+This scripts cleans csv files provided by Allie Hunter from Fish and Wildlife Service with Temperature data for Palmyra Atoll, data from SeaTempLoggers 2020.
 
-Date range goes from: 2017-08-31 to 2018-11-14
+Date range goes from: 
 
 The goal is to determine gaps un data collections and missing information needed to correctly document this data.
 
@@ -76,9 +76,9 @@ Check for duplicates using `distinc()`
 
 ```{r}
 
-temp_list <- list(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8, temp9, temp10)
+temp_list <- list(temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8)
 
-names(temp_list) <- c("temp1", "temp2", "temp3", "temp4", "temp5", "temp6", "temp7", "temp8", "temp9", "temp10")
+names(temp_list) <- c("temp1", "temp2", "temp3", "temp4", "temp5", "temp6", "temp7", "temp8")
 
 ## Check for duplicates - There are 16 rows with same date, time and temperature. Each come from different data sets, temp8 (Sacia) and temp10 (WTerrace). Is this possible??
 all_temp <- bind_rows(temp_list) %>% 
@@ -92,7 +92,9 @@ dupli <- test %>%
   ungroup()
 
 test2 <- all_temp %>% 
-  filter(date == "01/10/2018")
+  filter(date == "07/10/2019")
+
+## Temp6 and temp8 seem to have 131 repeated measurments
 
 ## End checking -----------
 
@@ -113,18 +115,20 @@ site_serial <- all_csv %>%
   mutate(serial_num = str_extract(id2, "\\d{4}[^\\d]*$"),
          serial_num = ifelse(is.na(serial_num), str_extract(id3, "\\d{4}[^\\d]*$"),
                                    serial_num),
-         serial_num = str_remove(serial_num, ".csv") %>% trimws(.)) %>%  
+         serial_num = str_remove(serial_num, ".csv") %>% trimws(.),
+         serial_num = ifelse(is.na(serial_num), "4634", serial_num)) %>%  
   select(obj_name, serial_num, site_name)
 
 
 final_temp <- all_temp %>% 
   left_join(site_serial, by = "obj_name") %>% 
   select(-obj_name) %>% 
-  mutate(year_folder = 2018,
+  mutate(year_folder = 2020,
          date = as.Date(date, format = "%m/%d/%Y"))
 
 
 ```
+
 
 
 ## Checking
@@ -132,7 +136,7 @@ final_temp <- all_temp %>%
 Plot
 ```{r}
 
-plot18 <- final_temp %>% 
+plot20 <- final_temp %>% 
   group_by(date, site_name) %>% 
   summarise(mean_temp = mean(temperature)) %>%
   ungroup() %>% 
@@ -143,10 +147,11 @@ plot18 <- final_temp %>%
   geom_line()+
   theme_classic()
   
-ggplotly(plot18)
+ggplotly(plot20)
 
 ```
 
+All looks normal. First days ans last days sometimes is not continious.
 
 Date ranges
 ```{r}
