@@ -5,7 +5,7 @@ date: "12/2/2021"
 output: html_document
 ---
 
-This scripts cleans csv files provided by Allie Hunter from Fish and Wildlife Service with Temperature data for Palmyra Atoll, data from SeaTempLoggers 2018.
+This scripts cleans csv files provided by Allie Hunter from Fish and Wildlife Service with Sea Temperature data for Palmyra Atoll, data from SeaTempLoggers 2018.
 
 Date range goes from: 2017-08-31 to 2018-11-14
 

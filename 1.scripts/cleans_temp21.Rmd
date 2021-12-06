@@ -222,6 +222,3 @@ write_csv(metadata, here::here("8.intermediate_files/2020_2021_metadata.csv"))
 ```
 
 
-
-
-

@@ -179,7 +179,7 @@ for (i in seq(1:18)){
 ```{r}
 ## files and folders inside SeaTempLogger2018
 
-dir_18 <-  drive_ls(files[1, ]) ## **check file to make sure 5 correspond to the 2018 folder**
+dir_18 <-  drive_ls(files[5, ]) ## **check file to make sure 5 correspond to the 2018 folder**
   
 ```
 
@@ -188,7 +188,7 @@ dir_18 <-  drive_ls(files[1, ]) ## **check file to make sure 5 correspond to the
 ```{r}
 ## Loop to name objects as they are being read. Missing the part of binding all together into one dataframe
 
-for (i in 2:10){
+for (i in 3:11){
 
   assign(paste0("subdir", i), drive_ls(dir_18[i,])) %>% 
     mutate(origin_dir = i)
@@ -196,10 +196,10 @@ for (i in 2:10){
 
 
 ## Create a list with all subdir files
-subdir_list <- list(subdir2, subdir3, subdir4, subdir5, subdir6, subdir7, subdir8, subdir9, subdir10, dir_18)
+subdir_list <- list(subdir3, subdir4, subdir5, subdir6, subdir7, subdir8, subdir9, subdir10, subdir11, dir_18)
 
 ## Re name lists inside list with corresponding object name
-names(subdir_list) <- c("subdir2", "subdir3", "subdir4", "subdir5", "subdir6", "subdir7", "subdir8", "subdir9", "subdir10", "dir_18")
+names(subdir_list) <- c("subdir3", "subdir4", "subdir5", "subdir6", "subdir7", "subdir8", "subdir9", "subdir10", "subdir11", "dir_18")
 
 ## Bind all data frames into one
 all_subdir <- bind_rows(subdir_list, .id = "source")
