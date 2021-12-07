@@ -81,3 +81,57 @@ sites <- temp_complete %>%
   
 ```
 
+## Save clean data
+
+Note: Need to make sure all data sets have the sample and serial number! Remove year_folder
+
+**Ask Allie if it is important to keep the sample number.**
+
+```{r}
+
+write_csv(temp_complete, here::here("7.clean_data/2014_2021_pamyra_fws_seatemp.csv"))
+
+```
+
+
+## Metadata
+
+```{r}
+all_meta <- tibble(list.files(data_path, pattern = "metadata")) %>% 
+  rename(file_name = 1) %>% 
+  mutate(path = paste0(data_path, "/", file_name),
+         type = "meta",
+         year = c(17, 18, 20, 21)) %>% 
+  unite(obj_name, type, year, sep = "", remove = FALSE)
+
+for (i in 1:4){
+  
+  assign(all_meta$obj_name[i], read_csv(all_meta$path[i]))
+}
+
+```
+
+## Correcting missing info
+
+```{r}
+meta18 <- meta18 %>% 
+  mutate(site_name = ifelse(is.na(site_name), "Sacia", site_name))
+```
+
+## Combine all metadata
+
+```{r}
+all_meta <- bind_rows(meta17, meta18, meta20, meta21)
+```
+
+## Save
+
+```{r}
+
+write_csv(all_meta, here::here("7.clean_data/2017_2021_pamyra_seatemp_instrument_metadata.csv"))
+
+```
+
+
+
+

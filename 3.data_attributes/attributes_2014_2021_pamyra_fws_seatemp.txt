@@ -1,0 +1,8 @@
+attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
+sample_number		numeric	!Add units here!			
+date		Date		!Add datetime specifier here!		
+time		Date		!Add datetime specifier here!		
+temperature		numeric	!Add units here!			
+site_name		character				
+serial_num		numeric	!Add units here!			
+year_folder		Date		!Add datetime specifier here!		

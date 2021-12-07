@@ -1,0 +1,12 @@
+attributeName	attributeDefinition	class	unit	dateTimeFormatString	missingValueCode	missingValueCodeExplanation
+site_name		character				
+instrument_type		categorical				
+serial_number		numeric	!Add units here!			
+firmware_version		categorical				
+conversion_date		Date		!Add datetime specifier here!		
+source_file		character				
+calibration_date		Date		!Add datetime specifier here!		
+a0		numeric	!Add units here!			
+a1		numeric	!Add units here!			
+a2		numeric	!Add units here!			
+a3		numeric	!Add units here!			
