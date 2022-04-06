@@ -62,7 +62,7 @@ temp_complete <-  bind_rows(temp17, temp18, temp20, temp21)
 
 ```{r}
 ## Create a table with date range
-date_range <- temp_complete %>% 
+date_range <- temp_complete   %>% #sea_tmp
   group_by(site_name) %>% 
   summarise(date_begins = min(date),
          date_ends = max(date)) %>% 
@@ -89,7 +89,7 @@ Note: Need to make sure all data sets have the sample and serial number! Remove 
 
 ```{r}
 
-write_csv(temp_complete, here::here("7.clean_data/2014_2021_pamyra_fws_seatemp.csv"))
+write_csv(temp_complete, here::here("7.clean_data/palmyra_fws_seatemp_2014_2021.csv"))
 
 ```
 
@@ -128,7 +128,7 @@ all_meta <- bind_rows(meta17, meta18, meta20, meta21)
 
 ```{r}
 
-write_csv(all_meta, here::here("7.clean_data/2017_2021_pamyra_seatemp_instrument_metadata.csv"))
+write_csv(all_meta, here::here("7.clean_data/palmyra_seatemp_instrument_metadata_2017_2021.csv"))
 
 ```
 
