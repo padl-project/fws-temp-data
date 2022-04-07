@@ -81,6 +81,25 @@ sites <- temp_complete %>%
   
 ```
 
+## Plot
+```{r}
+plot_all <- temp_complete %>%
+  filter(temperature > 0) %>% 
+  group_by(date, site_name) %>% 
+  summarise(mean_temp = mean(temperature)) %>%
+  ungroup() %>% 
+  ggplot(
+  aes(x = date,
+      y = mean_temp,
+      color = site_name))+
+  geom_line()+
+  theme_classic()
+  
+ggplotly(plot_all)
+```
+
+
+
 ## Save clean data
 
 Note: Need to make sure all data sets have the sample and serial number! Remove year_folder
